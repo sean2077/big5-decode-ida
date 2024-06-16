@@ -19,12 +19,13 @@ __AUTHOR__ = "@sean2077"
 
 PLUGIN_NAME = "Big5 Decode"
 PLUGIN_HOTKEY = ""
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 ACTION_PREFIX = "sean2077"
 
 import codecs
 
+import ida_kernwin
 import idaapi
 import idc
 
@@ -59,6 +60,50 @@ def big5_decode_action():
     idaapi.msg(f"Added comment: {decoded_string} at {idc.get_screen_ea()}\n")
 
 
+def big5_batch_decode_action():
+    start_ea = idc.get_screen_ea()
+    if start_ea == idaapi.BADADDR:
+        idaapi.warning("Invalid start address selected")
+        return
+
+    end_ea = ida_kernwin.ask_addr(start_ea, "Enter the end address")
+    if not end_ea:  # Cancelled
+        return
+    if end_ea == idaapi.BADADDR or end_ea <= start_ea:
+        idaapi.warning("Invalid end address selected")
+        return
+
+    ea = start_ea
+    byte_list = []
+    while ea <= end_ea:
+        byte_value = idc.get_wide_byte(ea)
+        if byte_value == 0:
+            if byte_list:
+                # Convert byte list to byte array
+                byte_array = bytearray(byte_list)
+                # Decode byte array using Big5 encoding
+                try:
+                    decoded_string = codecs.decode(byte_array, "big5")
+                    idc.set_cmt(ea - len(byte_list), decoded_string, 1)
+                    idaapi.msg(f"Added comment: {decoded_string} at {ea - len(byte_list)}\n")
+                except Exception as e:
+                    idaapi.msg(f"Error decoding Big5 at {ea - len(byte_list)}: {e}\n")
+                byte_list = []
+        else:
+            byte_list.append(byte_value)
+        ea += 1
+
+    if byte_list:
+        # Handle the case where the last sequence does not end with a 0 byte
+        byte_array = bytearray(byte_list)
+        try:
+            decoded_string = codecs.decode(byte_array, "big5")
+            idc.set_cmt(ea - len(byte_list), decoded_string, 1)
+            idaapi.msg(f"Added comment: {decoded_string} at {ea - len(byte_list)}\n")
+        except Exception as e:
+            idaapi.msg(f"Error decoding Big5 at {ea - len(byte_list)}: {e}\n")
+
+
 class Big5DecodePlugin(idaapi.plugin_t):
     flags = idaapi.PLUGIN_PROC | idaapi.PLUGIN_HIDE
     comment = "Big5 Decode"
@@ -68,6 +113,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
 
     def init(self):
         self._init_action_big5_decode()
+        self._init_action_big5_batch_decode()
         self._init_hooks()
         idaapi.msg("%s %s initialized...\n" % (self.wanted_name, VERSION))
         return idaapi.PLUGIN_KEEP
@@ -78,6 +124,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
     def term(self):
         self._hooks.unhook()
         self._del_action_big5_decode()
+        self._del_action_big5_batch_decode()
         idaapi.msg("%s terminated...\n" % self.wanted_name)
 
     def _init_hooks(self):
@@ -85,6 +132,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
         self._hooks.hook()
 
     ACTION_BIG5_DECODE = f"{ACTION_PREFIX}:big5_decode"
+    ACTION_BIG5_BATCH_DECODE = f"{ACTION_PREFIX}:big5_batch_decode"
 
     def _init_action_big5_decode(self):
         action_desc = idaapi.action_desc_t(
@@ -97,8 +145,22 @@ class Big5DecodePlugin(idaapi.plugin_t):
         )
         assert idaapi.register_action(action_desc), "Action registration failed"
 
+    def _init_action_big5_batch_decode(self):
+        action_desc = idaapi.action_desc_t(
+            self.ACTION_BIG5_BATCH_DECODE,
+            "Big5 batch decode",
+            IDACtxEntry(big5_batch_decode_action),
+            "",  # No hotkey
+            "Batch decode bytes as Big5 between the selected addresses",
+            0,
+        )
+        assert idaapi.register_action(action_desc), "Action registration failed"
+
     def _del_action_big5_decode(self):
         idaapi.unregister_action(self.ACTION_BIG5_DECODE)
+
+    def _del_action_big5_batch_decode(self):
+        idaapi.unregister_action(self.ACTION_BIG5_BATCH_DECODE)
 
 
 class Hooks(idaapi.UI_Hooks):
@@ -110,6 +172,9 @@ class Hooks(idaapi.UI_Hooks):
 def inject_big5_decode_actions(form, popup, form_type):
     if form_type == idaapi.BWN_DISASM:
         idaapi.attach_action_to_popup(form, popup, Big5DecodePlugin.ACTION_BIG5_DECODE, "Big5 decode", idaapi.SETMENU_APP)
+        idaapi.attach_action_to_popup(
+            form, popup, Big5DecodePlugin.ACTION_BIG5_BATCH_DECODE, "Big5 batch decode", idaapi.SETMENU_APP
+        )
     return 0
 
 
