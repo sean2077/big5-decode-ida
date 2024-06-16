@@ -19,7 +19,7 @@ __AUTHOR__ = "@sean2077"
 
 PLUGIN_NAME = "Big5 Decode"
 PLUGIN_HOTKEY = ""
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 ACTION_PREFIX = "sean2077"
 
@@ -61,17 +61,22 @@ def big5_decode_action():
 
 
 def big5_batch_decode_action():
-    start_ea = idc.get_screen_ea()
-    if start_ea == idaapi.BADADDR:
-        idaapi.warning("Invalid start address selected")
-        return
+    start_ea = idc.read_selection_start()
+    end_ea = idc.read_selection_end()
 
-    end_ea = ida_kernwin.ask_addr(start_ea, "Enter the end address")
-    if not end_ea:  # Cancelled
-        return
-    if end_ea == idaapi.BADADDR or end_ea <= start_ea:
-        idaapi.warning("Invalid end address selected")
-        return
+    if start_ea == end_ea:
+        start_ea = idc.get_screen_ea()
+        if start_ea == idaapi.BADADDR:
+            idaapi.warning("Invalid start address selected")
+            return
+        end_ea = ida_kernwin.ask_addr(start_ea, "Enter the end address")
+        if not end_ea:  # Cancelled
+            return
+        if end_ea == idaapi.BADADDR or end_ea <= start_ea:
+            idaapi.warning("Invalid end address selected")
+            return
+
+    print(f"start_ea: {start_ea}, end_ea: {end_ea}")
 
     ea = start_ea
     byte_list = []
@@ -104,11 +109,23 @@ def big5_batch_decode_action():
             idaapi.msg(f"Error decoding Big5 at {ea - len(byte_list)}: {e}\n")
 
 
-# 批量删除选中范围内的注释
 def batch_delete_comments_action():
-    # 获取选中范围的起始和结束地址
     start_ea = idc.read_selection_start()
     end_ea = idc.read_selection_end()
+
+    if start_ea == end_ea:
+        start_ea = idc.get_screen_ea()
+        if start_ea == idaapi.BADADDR:
+            idaapi.warning("Invalid start address selected")
+            return
+        end_ea = ida_kernwin.ask_addr(start_ea, "Enter the end address")
+        if not end_ea:  # Cancelled
+            return
+        if end_ea == idaapi.BADADDR or end_ea <= start_ea:
+            idaapi.warning("Invalid end address selected")
+            return
+
+    print(f"start_ea: {start_ea}, end_ea: {end_ea}")
 
     ea = start_ea
     while ea <= end_ea:
