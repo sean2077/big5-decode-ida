@@ -19,7 +19,7 @@ __AUTHOR__ = "@sean2077"
 
 PLUGIN_NAME = "Big5 Decode"
 PLUGIN_HOTKEY = ""
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 ACTION_PREFIX = "sean2077"
 
@@ -104,6 +104,18 @@ def big5_batch_decode_action():
             idaapi.msg(f"Error decoding Big5 at {ea - len(byte_list)}: {e}\n")
 
 
+# 批量删除选中范围内的注释
+def batch_delete_comments_action():
+    # 获取选中范围的起始和结束地址
+    start_ea = idc.read_selection_start()
+    end_ea = idc.read_selection_end()
+
+    ea = start_ea
+    while ea <= end_ea:
+        idc.set_cmt(ea, "", 1)
+        ea += 1
+
+
 class Big5DecodePlugin(idaapi.plugin_t):
     flags = idaapi.PLUGIN_PROC | idaapi.PLUGIN_HIDE
     comment = "Big5 Decode"
@@ -114,6 +126,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
     def init(self):
         self._init_action_big5_decode()
         self._init_action_big5_batch_decode()
+        self._init_action_batch_delete_comment()
         self._init_hooks()
         idaapi.msg("%s %s initialized...\n" % (self.wanted_name, VERSION))
         return idaapi.PLUGIN_KEEP
@@ -133,6 +146,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
 
     ACTION_BIG5_DECODE = f"{ACTION_PREFIX}:big5_decode"
     ACTION_BIG5_BATCH_DECODE = f"{ACTION_PREFIX}:big5_batch_decode"
+    ACTION_BATCH_DELETE_COMMENT = f"{ACTION_PREFIX}:batch_delete_comment"
 
     def _init_action_big5_decode(self):
         action_desc = idaapi.action_desc_t(
@@ -156,11 +170,25 @@ class Big5DecodePlugin(idaapi.plugin_t):
         )
         assert idaapi.register_action(action_desc), "Action registration failed"
 
+    def _init_action_batch_delete_comment(self):
+        action_desc = idaapi.action_desc_t(
+            self.ACTION_BATCH_DELETE_COMMENT,
+            "Batch delete comments",
+            IDACtxEntry(batch_delete_comments_action),
+            "",  # No hotkey
+            "Batch delete comments between the selected addresses",
+            0,
+        )
+        assert idaapi.register_action(action_desc), "Action registration failed"
+
     def _del_action_big5_decode(self):
         idaapi.unregister_action(self.ACTION_BIG5_DECODE)
 
     def _del_action_big5_batch_decode(self):
         idaapi.unregister_action(self.ACTION_BIG5_BATCH_DECODE)
+
+    def _del_action_batch_delete_comment(self):
+        idaapi.unregister_action(self.ACTION_BATCH_DELETE_COMMENT)
 
 
 class Hooks(idaapi.UI_Hooks):
