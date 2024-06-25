@@ -19,7 +19,7 @@ __AUTHOR__ = "@sean2077"
 
 PLUGIN_NAME = "Big5 Decode"
 PLUGIN_HOTKEY = ""
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 
 ACTION_PREFIX = "sean2077"
 
@@ -155,6 +155,7 @@ class Big5DecodePlugin(idaapi.plugin_t):
         self._hooks.unhook()
         self._del_action_big5_decode()
         self._del_action_big5_batch_decode()
+        self._del_action_batch_delete_comment()
         idaapi.msg("%s terminated...\n" % self.wanted_name)
 
     def _init_hooks(self):
@@ -219,6 +220,9 @@ def inject_big5_decode_actions(form, popup, form_type):
         idaapi.attach_action_to_popup(form, popup, Big5DecodePlugin.ACTION_BIG5_DECODE, "Big5 decode", idaapi.SETMENU_APP)
         idaapi.attach_action_to_popup(
             form, popup, Big5DecodePlugin.ACTION_BIG5_BATCH_DECODE, "Big5 batch decode", idaapi.SETMENU_APP
+        )
+        idaapi.attach_action_to_popup(
+            form, popup, Big5DecodePlugin.ACTION_BATCH_DELETE_COMMENT, "Batch delete comments", idaapi.SETMENU_APP
         )
     return 0
 
