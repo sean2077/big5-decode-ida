@@ -19,7 +19,7 @@ __AUTHOR__ = "@sean2077"
 
 PLUGIN_NAME = "Big5 Decode"
 PLUGIN_HOTKEY = ""
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 ACTION_PREFIX = "sean2077"
 
@@ -76,7 +76,7 @@ def big5_batch_decode_action():
             idaapi.warning("Invalid end address selected")
             return
 
-    print(f"start_ea: {start_ea}, end_ea: {end_ea}")
+    print(f"start_ea: {start_ea:x}, end_ea: {end_ea:x}")
 
     ea = start_ea
     byte_list = []
@@ -125,7 +125,7 @@ def batch_delete_comments_action():
             idaapi.warning("Invalid end address selected")
             return
 
-    print(f"start_ea: {start_ea}, end_ea: {end_ea}")
+    print(f"start_ea: {start_ea:x}, end_ea: {end_ea:x}")
 
     ea = start_ea
     while ea <= end_ea:
